@@ -1,0 +1,4 @@
+# map_server_params.yaml
+map_server:
+    ros__parameters:
+        yaml_filename: "/home/younes/Documents/mte544/labs/lab2/lab2_ws/src/localization/maps/map_maze_1.yaml"
