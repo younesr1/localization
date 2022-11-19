@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'node = localization.localization:main',
+            'echoer = localization.echoer:main',
         ],
     },
 )
