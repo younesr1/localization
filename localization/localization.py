@@ -78,7 +78,7 @@ class PoseGenerator(Node):
 
         self.population = 2 #5000
         self.lidar_standard_deviation = 0.2
-        self.iterations = 2
+        self.iterations = 1
         x_min = -2
         x_max = 0
         y_min = -3
@@ -140,6 +140,8 @@ class PoseGenerator(Node):
             weight= np.sum(np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
             weights.append(weight)
         assert len(weights) == self.population
+        weights = np.array(weights)/sum(weights)
+        assert all(0<=w<=1 for w in weights)
         #plt.hist(weights)
         #plt.show()
         # younes todo delete this. just debugging
@@ -153,13 +155,16 @@ class PoseGenerator(Node):
         ax1.scatter(self.occupancy_grid[:,0],self.occupancy_grid[:,1],s=0.5,c='r',marker='o',label='map')
         plt.legend(loc='upper left')
         plt.show()
-        #self.poses = [best for _ in range(self.population)]
+        assert len(self.poses) == len(weights) == self.population
+        self.poses = np.random.choice(self.poses,size=self.population,replace=True,p=weights).tolist()
+        assert type(self.poses) is list
 
     def run(self):
         self.get_logger().info("waiting for laser scan")
+        self.publish()
         for _ in range(self.iterations):
-            self.publish()
             self.update()
+            self.publish()
 
 def main(args=None):
     rclpy.init(args=args)
