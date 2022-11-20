@@ -76,7 +76,7 @@ class PoseGenerator(Node):
         self.scan = scan
         self.publisher_ = self.create_publisher(PoseArray, '/lab/poses', 10)
 
-        self.population = 5000
+        self.population = 2 #5000
         self.lidar_standard_deviation = 0.2
         self.iterations = 2
         x_min = -2
@@ -86,24 +86,31 @@ class PoseGenerator(Node):
         yaw_min = 0
         yaw_max = 2*np.pi
         self.poses = []
-        for _ in range(self.population):
+        '''for _ in range(self.population):
             x_rand = np.random.uniform(x_min,x_max)
             y_rand = np.random.uniform(y_min,y_max)
             yaw_rand = np.random.uniform(yaw_min,yaw_max)
             p = Point(x=x_rand, y=y_rand, z=0.0)
             q = self.yaw_to_quaternion(yaw_rand)
-            self.poses.append(Pose(position=p,orientation=q))
+            self.poses.append(Pose(position=p,orientation=q))'''
+        p = Point(x=-1.9986503222697123, y=0.22951129057694164, z=0.0)
+        q = Quaternion(x=0.0, y=0.0, z=0.999807757390197, w=-0.019607352253300746)
+        self.poses.append(Pose(position=p,orientation=q))
+
+        p = Point(x=-0.2,y= -1.9, z=0.000)
+        q = self.yaw_to_quaternion(np.radians(130))
+        self.poses.append(Pose(position=p,orientation=q))
 
         self.kdt=KDTree(occupancy_grid)
 
     def yaw_to_quaternion(self,yaw):
-        assert 0 <= yaw <= 2*np.pi
+        # younes todo uncomment assert 0 <= yaw <= 2*np.pi
         q = R.from_euler('z', yaw).as_quat()
         return Quaternion(x=q[0],y=q[1],z=q[2],w=q[3])
 
     def quaternion_to_yaw(self,quat):
         x,y,z = R.from_quat([quat.x,quat.y,quat.z,quat.w]).as_euler('xyz',degrees=False)
-        assert x == y == 0 
+        # younes todo uncomment assert x == y == 0 
         return z
 
     def publish(self):
@@ -123,30 +130,30 @@ class PoseGenerator(Node):
         assert len(ret) == len(scan)
         return ret
 
+
     def update(self):
         assert len(self.poses) == self.population
         weights = []
         for pose in self.poses:
             map_frame_scan = self.scan_to_map_frame(pose,self.scan)
             distances=self.kdt.query(map_frame_scan, k=1)[0][:]
-            weight= np.sum (np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
+            weight= np.sum(np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
             weights.append(weight)
         assert len(weights) == self.population
         #plt.hist(weights)
         #plt.show()
         # younes todo delete this. just debugging
-        '''best = self.poses[weights.index(min(weights))]#younes todo this is dumb
-        print(best)
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
-        temp_scan_of_the_best_in_map_frame = self.scan_to_map_frame(best,self.scan)
-        print(temp_scan_of_the_best_in_map_frame,temp_scan_of_the_best_in_map_frame.shape)
-        ax1.scatter(temp_scan_of_the_best_in_map_frame[:,0],temp_scan_of_the_best_in_map_frame[:,1],s=2,c='b',marker='s',label='scan')
+        print(weights)
+        print(self.poses)
+        for pose in self.poses:
+            temp = self.scan_to_map_frame(pose,self.scan)
+            ax1.scatter(temp[:,0],temp[:,1],s=0.5,c='b',marker='o',label='scan')
         ax1.scatter(self.occupancy_grid[:,0],self.occupancy_grid[:,1],s=0.5,c='r',marker='o',label='map')
         plt.legend(loc='upper left')
         plt.show()
-        self.poses = [best for _ in range(self.population)]
-        '''
+        #self.poses = [best for _ in range(self.population)]
 
     def run(self):
         self.get_logger().info("waiting for laser scan")
