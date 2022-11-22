@@ -177,7 +177,8 @@ class PoseGenerator(Node):
             # we make distance have a high weight. we also normalize by the std deviation of the sensor
             # we also square to make it more disparate
             # we sum over all the distance to get a sense of the goodness of the scan
-            weight= np.sum(np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
+            weight= np.prod(np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
+            #weight= np.sum(np.exp(-(distances**2)/(2*self.lidar_standard_deviation**2)))
             weights.append(weight)
         assert len(weights) == self.population
         # now that we have all weights we normalize.
@@ -209,11 +210,23 @@ class PoseGenerator(Node):
         np.set_printoptions(threshold=np.inf)
         # just loop for the iterations. publish the pose array every time u update
         # it usually take > 15 mins to converge to something clear
+        x_var = []
+        y_var = []
+        theta_var = []
+        x_var.append(np.var([p.position.x for p in self.poses]))
+        y_var.append(np.var([p.position.y for p in self.poses]))
+        theta_var.append(np.var([self.quaternion_to_yaw(p.orientation) for p in self.poses]))
         for it in range(self.iterations):
             self.get_logger().info(f"iteration {it}")
-            print(self.poses)
+            #print(self.poses)
             self.update()
             self.publish()
+            x_var.append(np.var([p.position.x for p in self.poses]))
+            y_var.append(np.var([p.position.y for p in self.poses]))
+            theta_var.append(np.var([self.quaternion_to_yaw(p.orientation) for p in self.poses]))
+            print("x variance", x_var)
+            print("y variance", y_var)
+            print("theta variance", theta_var)
 
 def main(args=None):
     rclpy.init(args=args)
